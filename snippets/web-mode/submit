@@ -1,0 +1,11 @@
+# -*- mode: snippet -*-
+# name: Submit
+# uuid:
+# key: trigger-key
+# condition: t
+# --
+<div class="mb-6 flow-root">
+    <button type="submit" class="float-right bg-blue-400 text-white rounded py-2 px-4 howver:bg-blue-500">
+            Submit
+    </button>
+ </div>
