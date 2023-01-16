@@ -206,8 +206,7 @@
                "* MEETING with %? :MEETING:\n%U" :clock-in t :clock-resume t)
               ("p" "Phone call" entry (file "~/Org/refile.org")
                "* PHONE %? :PHONE:\n%U" :clock-in t :clock-resume t)
-              ("h" "Habit" entry (file "~/Org/refile.org")
-               "* NEXT %?\n%U\n%a\nSCHEDULED: %(format-time-string \"%<<%Y-%m-%d %a .+1d/3d>>\")\n:PROPERTIES:\n:STYLE: habit\n:REPEAT_TO_STATE: NEXT\n:END:\n"))))
+              )))
 
 ;; Remove empty LOGBOOK drawers on clock out
 (defun bh/remove-empty-drawer-on-clock-out ()
@@ -253,10 +252,10 @@
       (quote (("N" "Notes" tags "NOTE"
                ((org-agenda-overriding-header "Notes")
                 (org-tags-match-list-sublevels t)))
-              ("h" "Habits" tags-todo "STYLE=\"habit\""
-               ((org-agenda-overriding-header "Habits")
-                (org-agenda-sorting-strategy
-                 '(todo-state-down effort-up category-keep))))
+              ;; ("h" "Habits" tags-todo "STYLE=\"habit\""
+              ;;  ((org-agenda-overriding-header "Habits")
+              ;;   (org-agenda-sorting-strategy
+              ;;    '(todo-state-down effort-up category-keep))))
               (" " "Agenda"
                ((agenda "" nil)
                 (tags "REFILE"
@@ -278,7 +277,7 @@
                                                                   (if bh/hide-scheduled-and-waiting-next-tasks
                                                                       ""
                                                                     " (including WAITING and SCHEDULED tasks)")))
-                            (org-agenda-skip-function 'bh/skip-projects-and-habits-and-single-tasks)
+                            ;;(org-agenda-skip-function 'bh/skip-projects-and-habits-and-single-tasks)
                             (org-tags-match-list-sublevels t)
                             (org-agenda-todo-ignore-scheduled bh/hide-scheduled-and-waiting-next-tasks)
                             (org-agenda-todo-ignore-deadlines bh/hide-scheduled-and-waiting-next-tasks)
@@ -716,8 +715,8 @@ Skip project and sub-project tasks, habits, and project related tasks."
       (cond
        ((bh/is-project-p)
         subtree-end)
-       ((org-is-habit-p)
-        subtree-end)
+       ;; ((org-is-habit-p)
+       ;;  subtree-end)
        (t
         nil)))))
 
@@ -727,8 +726,6 @@ Skip project and sub-project tasks, habits, and project related tasks."
     (widen)
     (let ((next-headline (save-excursion (or (outline-next-heading) (point-max)))))
       (cond
-       ((org-is-habit-p)
-        next-headline)
        ((and bh/hide-scheduled-and-waiting-next-tasks
              (member "WAITING" (org-get-tags)))
         next-headline)
@@ -1478,9 +1475,9 @@ Late deadlines first, then scheduled, then non-late deadlines"
                           org-w3m)))
 
 ; position the habit graph on the agenda to the right of the default
-(setq org-habit-graph-column 50)
+;; (setq org-habit-graph-column 50)
 
-(run-at-time "06:00" 86400 #'(lambda () (setq org-habit-show-habits t)))
+;; (run-at-time "06:00" 86400 #'(lambda () (setq org-habit-show-habits t)))
 
 (global-auto-revert-mode t)
 
