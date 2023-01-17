@@ -98,6 +98,7 @@
          (org-table-recalculate t))))))
  '(org-agenda-files
    '("/home/jonathan/Org/todo.org" "/home/jonathan/Org/clients/fondation-taurus/fondation-taurus.org" "/home/jonathan/Org/website.org" "/home/jonathan/Org/refile.org" "/home/jonathan/Org/pihole/pihole.org" "/home/jonathan/Org/org-mode.org" "/home/jonathan/Org/independant.org" "/home/jonathan/Org/diary.org" "/home/jonathan/Org/clients/actionpourmalades/actionpourmalades.org" "/home/jonathan/Org/clients/demart/demart.org" "/home/jonathan/Org/clients/fondation-taurus/fondationtaurus-chaisesvolantes.org"))
+ '(org-ditaa-jar-path "/home/jonathan/ditaa/ditaa0_9/ditaa0_9.jar")
  '(safe-local-variable-values
    '((eval progn
       (set
