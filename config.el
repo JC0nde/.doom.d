@@ -93,6 +93,7 @@
 
 (after! org
   (setq org-hide-emphasis-markers t)
+
 ;; Custom Key Bindings
 (global-set-key (kbd "<f12>") 'org-agenda)
 (global-set-key (kbd "<f5>") 'bh/org-todo)
@@ -198,7 +199,7 @@
                "* NEXT Respond to %:from on %:subject\nSCHEDULED: %t\n%U\n%a\n" :clock-in t :clock-resume t :immediate-finish t)
               ("n" "note" entry (file "~/Org/refile.org")
                "* %? :NOTE:\n%U\n%a\n" :clock-in t :clock-resume t)
-              ("j" "Journal" entry (file+opl+datetree "~/Org/diary.org")
+              ("j" "Journal" entry (file+olp+datetree "~/Org/diary.org")
                "* %?\n%U\n" :clock-in t :clock-resume t)
               ("w" "org-protocol" entry (file "~/Org/refile.org")
                "* TODO Review %c\n%U\n" :immediate-finish t)
@@ -206,7 +207,8 @@
                "* MEETING with %? :MEETING:\n%U" :clock-in t :clock-resume t)
               ("p" "Phone call" entry (file "~/Org/refile.org")
                "* PHONE %? :PHONE:\n%U" :clock-in t :clock-resume t)
-              )))
+              ("h" "Habit" entry (file "~/Org/refile.org")
+               "* NEXT %?\n%U\n%a\nSCHEDULED: %(format-time-string \"%<<%Y-%m-%d %a .+1d/3d>>\")\n:PROPERTIES:\n:STYLE: habit\n:REPEAT_TO_STATE: NEXT\n:END:\n"))))
 
 ;; Remove empty LOGBOOK drawers on clock out
 (defun bh/remove-empty-drawer-on-clock-out ()
@@ -221,9 +223,23 @@
 (setq org-refile-targets (quote ((nil :maxlevel . 9)
                                  (org-agenda-files :maxlevel . 9))))
 
+; Use full outline paths for refile targets - we file directly with IDO
+(setq org-refile-use-outline-path t)
+
+; Targets complete directly with IDO
+(setq org-outline-path-complete-in-steps nil)
+
 ; Allow refile to create parent tasks with confirmation
 (setq org-refile-allow-creating-parent-nodes (quote confirm))
 
+; Use IDO for both buffer and file completion and ido-everywhere to t
+(setq org-completion-use-ido t)
+(setq ido-everywhere t)
+(setq ido-max-directory-size 100000)
+(ido-mode (quote both))
+; Use the current window when visiting files and buffers with ido
+(setq ido-default-file-method 'selected-window)
+(setq ido-default-buffer-method 'selected-window)
 ; Use the current window for indirect buffer display
 (setq org-indirect-buffer-display 'current-window)
 
@@ -246,10 +262,10 @@
       (quote (("N" "Notes" tags "NOTE"
                ((org-agenda-overriding-header "Notes")
                 (org-tags-match-list-sublevels t)))
-              ;; ("h" "Habits" tags-todo "STYLE=\"habit\""
-              ;;  ((org-agenda-overriding-header "Habits")
-              ;;   (org-agenda-sorting-strategy
-              ;;    '(todo-state-down effort-up category-keep))))
+              ("h" "Habits" tags-todo "STYLE=\"habit\""
+               ((org-agenda-overriding-header "Habits")
+                (org-agenda-sorting-strategy
+                 '(todo-state-down effort-up category-keep))))
               (" " "Agenda"
                ((agenda "" nil)
                 (tags "REFILE"
@@ -271,7 +287,7 @@
                                                                   (if bh/hide-scheduled-and-waiting-next-tasks
                                                                       ""
                                                                     " (including WAITING and SCHEDULED tasks)")))
-                            ;;(org-agenda-skip-function 'bh/skip-projects-and-habits-and-single-tasks)
+                            (org-agenda-skip-function 'bh/skip-projects-and-habits-and-single-tasks)
                             (org-tags-match-list-sublevels t)
                             (org-agenda-todo-ignore-scheduled bh/hide-scheduled-and-waiting-next-tasks)
                             (org-agenda-todo-ignore-deadlines bh/hide-scheduled-and-waiting-next-tasks)
@@ -319,6 +335,8 @@
   "Automatic task exclusion in the agenda with / RET"
   (and (cond
         ((string= tag "hold")
+         t)
+        ((string= tag "farm")
          t))
        (concat "-" tag)))
 
@@ -499,15 +517,14 @@ A prefix arg forces clock in of the default task."
 (setq org-tag-alist (quote ((:startgroup)
                             ("@errand" . ?e)
                             ("@office" . ?o)
-                            ("@home" . ?h)
+                            ("@home" . ?H)
                             (:endgroup)
-                            ("WAITING" . ?W)
-                            ("HOLD" . ?H)
+                            ("WAITING" . ?w)
+                            ("HOLD" . ?h)
                             ("PERSONAL" . ?P)
-                            ("WORK" . ?w)
-                            ("INDEPENDANT" . ?I)
-                            ("WEBSITE" . ?S)
-                            ;;("crypt" . ?E)
+                            ("WORK" . ?W)
+                            ("WEBSITE" . ?N)
+                            ("crypt" . ?E)
                             ("NOTE" . ?n)
                             ("CANCELLED" . ?c)
                             ("FLAGGED" . ??))))
@@ -657,7 +674,7 @@ Callers of this function already widen the buffer view."
 
 (defun bh/skip-non-stuck-projects ()
   "Skip trees that are not stuck projects"
-  ;; (bh/list-sublevels-for-projects-indented)
+;;(bh/list-sublevels-for-projects-indented)
   (save-restriction
     (widen)
     (let ((next-headline (save-excursion (or (outline-next-heading) (point-max)))))
@@ -710,8 +727,8 @@ Skip project and sub-project tasks, habits, and project related tasks."
       (cond
        ((bh/is-project-p)
         subtree-end)
-       ;; ((org-is-habit-p)
-       ;;  subtree-end)
+       ((org-is-habit-p)
+        subtree-end)
        (t
         nil)))))
 
@@ -721,6 +738,8 @@ Skip project and sub-project tasks, habits, and project related tasks."
     (widen)
     (let ((next-headline (save-excursion (or (outline-next-heading) (point-max)))))
       (cond
+       ((org-is-habit-p)
+        next-headline)
        ((and bh/hide-scheduled-and-waiting-next-tasks
              (member "WAITING" (org-get-tags)))
         next-headline)
@@ -743,6 +762,8 @@ When not restricted, skip project and sub-project tasks, habits, and project rel
       (cond
        ((bh/is-project-p)
         next-headline)
+       ((org-is-habit-p)
+        subtree-end)
        ((and (not limit-to-project)
              (bh/is-project-subtree-p))
         subtree-end)
@@ -762,7 +783,8 @@ Skip project and sub-project tasks, habits, and project related tasks."
       (cond
        ((bh/is-project-p)
         subtree-end)
-
+       ((org-is-habit-p)
+        subtree-end)
        ((bh/is-project-subtree-p)
         subtree-end)
        (t
@@ -778,7 +800,8 @@ Skip project and sub-project tasks, habits, and loose non-project tasks."
       (cond
        ((bh/is-project-p)
         next-headline)
-
+       ((org-is-habit-p)
+        subtree-end)
        ((and (bh/is-project-subtree-p)
              (member (org-get-todo-state) (list "NEXT")))
         subtree-end)
@@ -795,7 +818,8 @@ Skip project and sub-project tasks, habits, and loose non-project tasks."
       (cond
        ((bh/is-project-p)
         subtree-end)
-
+       ((org-is-habit-p)
+        subtree-end)
        (t
         nil)))))
 
@@ -840,6 +864,7 @@ Skip project and sub-project tasks, habits, and loose non-project tasks."
 (require 'ox-ascii)
 
 (setq org-ditaa-jar-path "~/ditaa/ditaa0_9/ditaa0_9.jar")
+;;(setq org-plantuml-jar-path "~/java/plantuml.jar")
 
 (add-hook 'org-babel-after-execute-hook 'bh/display-inline-images 'append)
 
@@ -850,38 +875,6 @@ Skip project and sub-project tasks, habits, and loose non-project tasks."
   (condition-case nil
       (org-display-inline-images)
     (error nil)))
-
-(defmacro bh/agenda-sort-test (fn a b)
-  "Test for agenda sort"
-  `(cond
-    ; if both match leave them unsorted
-    ((and (apply ,fn (list ,a))
-          (apply ,fn (list ,b)))
-     (setq result nil))
-    ; if a matches put a first
-    ((apply ,fn (list ,a))
-     (setq result -1))
-    ; otherwise if b matches put b first
-    ((apply ,fn (list ,b))
-     (setq result 1))
-    ; if none match leave them unsorted
-    (t nil)))
-
-(defmacro bh/agenda-sort-test-num (fn compfn a b)
-  `(cond
-    ((apply ,fn (list ,a))
-     (setq num-a (string-to-number (match-string 1 ,a)))
-     (if (apply ,fn (list ,b))
-         (progn
-           (setq num-b (string-to-number (match-string 1 ,b)))
-           (setq result (if (apply ,compfn (list num-a num-b))
-                            -1
-                          1)))
-       (setq result -1)))
-    ((apply ,fn (list ,b))
-     (setq result 1))
-    (t nil)))
-
 
 (org-babel-do-load-languages
  (quote org-babel-load-languages)
@@ -1375,6 +1368,38 @@ Late deadlines first, then scheduled, then non-late deadlines"
      ; finally default to unsorted
      (t (setq result nil)))
     result))
+
+(defmacro bh/agenda-sort-test (fn a b)
+  "Test for agenda sort"
+  `(cond
+    ; if both match leave them unsorted
+    ((and (apply ,fn (list ,a))
+          (apply ,fn (list ,b)))
+     (setq result nil))
+    ; if a matches put a first
+    ((apply ,fn (list ,a))
+     (setq result -1))
+    ; otherwise if b matches put b first
+    ((apply ,fn (list ,b))
+     (setq result 1))
+    ; if none match leave them unsorted
+    (t nil)))
+
+(defmacro bh/agenda-sort-test-num (fn compfn a b)
+  `(cond
+    ((apply ,fn (list ,a))
+     (setq num-a (string-to-number (match-string 1 ,a)))
+     (if (apply ,fn (list ,b))
+         (progn
+           (setq num-b (string-to-number (match-string 1 ,b)))
+           (setq result (if (apply ,compfn (list num-a num-b))
+                            -1
+                          1)))
+       (setq result -1)))
+    ((apply ,fn (list ,b))
+     (setq result 1))
+    (t nil)))
+
 (defun bh/is-not-scheduled-or-deadline (date-str)
   (and (not (bh/is-deadline date-str))
        (not (bh/is-scheduled date-str))))
@@ -1451,28 +1476,29 @@ Late deadlines first, then scheduled, then non-late deadlines"
 (setq org-clock-sound "/home/jonathan/Org/sound/tngchime.wav")
 
 ; Enable habit tracking (and a bunch of other modules)
-(setq org-modules (quote (org-bbdb
-                          org-bibtex
+(setq org-modules '(ol-bbdb
                           org-crypt
-                          org-gnus
+                          ol-bibtex
+                          ol-gnus
                           org-id
-                          org-info
-                          org-jsinfo
+                          ol-info
                           org-habit
                           org-inlinetask
-                          org-irc
-                          org-mew
-                          org-mhe
+                          ol-irc
+                          ol-mew
+                          ol-mhe
                           org-protocol
-                          org-rmail
-                          org-vm
-                          org-wl
-                          org-w3m)))
+                          ol-rmail
+                          ol-vm
+                          ol-wl
+                          ol-w3m))
+(eval-after-load 'org
+  '(org-load-modules-maybe t))
 
 ; position the habit graph on the agenda to the right of the default
-;; (setq org-habit-graph-column 50)
+(setq org-habit-graph-column 50)
 
-;; (run-at-time "06:00" 86400 #'(lambda () (setq org-habit-show-habits t)))
+(run-at-time "06:00" 86400 #'(lambda () (setq org-habit-show-habits t)))
 
 (global-auto-revert-mode t)
 
@@ -1633,6 +1659,9 @@ Late deadlines first, then scheduled, then non-late deadlines"
                             ("\\.x?html?\\'" . system)
                             ("\\.pdf\\'" . system))))
 
+; Overwrite the current window with the agenda
+(setq org-agenda-window-setup 'current-window)
+
 (setq org-clone-delete-id t)
 
 (setq org-cycle-include-plain-lists t)
@@ -1655,7 +1684,7 @@ Late deadlines first, then scheduled, then non-late deadlines"
 
 (add-hook 'message-mode-hook 'orgstruct++-mode 'append)
 (add-hook 'message-mode-hook 'turn-on-auto-fill 'append)
-(add-hook 'message-mode-hook 'bbdb-mail-aliases 'append)
+(add-hook 'message-mode-hook 'bbdb-define-all-aliases 'append)
 (add-hook 'message-mode-hook 'orgtbl-mode 'append)
 (add-hook 'message-mode-hook
           #'(lambda () (setq fill-column 72))
@@ -1681,7 +1710,7 @@ Late deadlines first, then scheduled, then non-late deadlines"
 (set-charset-priority 'unicode)
 (setq default-process-coding-system '(utf-8-unix . utf-8-unix))
 
-(setq org-duration-format
+(setq org-time-clocksum-format
       '(:hours "%d" :require-hours t :minutes ":%02d" :require-minutes t))
 
 (setq org-id-link-to-org-use-id 'create-if-interactive-and-no-custom-id)
