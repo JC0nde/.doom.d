@@ -53,3 +53,4 @@
 (package! treemacs-projectile)
 (package! bbdb)
 (package! org-mime)
+(package! ox-pandoc)
