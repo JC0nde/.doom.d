@@ -6,7 +6,6 @@
  '(org-agenda-files
    '("~/Org/sarouong.org" "/home/jonathan/Org/weed.org" "/home/jonathan/Org/todo.org" "/home/jonathan/Org/clients/fondation-taurus/fondation-taurus.org" "/home/jonathan/Org/website.org" "/home/jonathan/Org/refile.org" "/home/jonathan/Org/independant.org" "/home/jonathan/Org/diary.org" "/home/jonathan/Org/clients/actionpourmalades/actionpourmalades.org" "/home/jonathan/Org/clients/demart/demart.org" "/home/jonathan/Org/clients/fondation-taurus/fondationtaurus-chaisesvolantes.org"))
  '(org-ditaa-jar-path "/home/jonathan/ditaa/ditaa0_9/ditaa0_9.jar")
-'(package-selected-packages '(benchmark-init))
  '(safe-local-variable-values
    '((eval progn
       (set

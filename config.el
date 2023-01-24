@@ -73,8 +73,51 @@
 ;;
 ;; You can also try 'gd' (or 'C-c c d') to jump to their definition and see how
 ;; they are implemented.
+(add-to-list 'load-path "/usr/local/share/emacs/site-lisp/mu4e")
+;; example configuration for mu4e
 
-(map! 
+(with-eval-after-load 'mu4e
+;; use mu4e for e-mail in emacs
+(setq mail-user-agent 'mu4e-user-agent)
+(setq  mu4e-headers-date-format "%Y-%m-%d %H:%M")
+;; show full addresses in view message (instead of just names)
+;; toggle per name with M-RET
+(setq mu4e-view-show-addresses 't)
+;; (i.e.. /home/user/Maildir/sent must exist)
+;; you use e.g. 'mu mkdir' to make the Maildirs if they don't
+;; already exist
+
+;; below are the defaults; if they do not exist yet, mu4e offers to
+;; create them. they can also functions; see their docstrings.
+(setq mu4e-sent-folder   "/Sent")
+(setq mu4e-drafts-folder "/Drafts")
+(setq mu4e-trash-folder  "/Trash")
+
+(setq   mu4e-maildir-shortcuts
+    '(("/INBOX"       . ?i)
+      ("/Sent"        . ?s)
+      ("/Drafts"      . ?d )
+      ("/Spam"        . ?S )
+      ("/Trash"       . ?t )
+      ("/Archives"    . ?a)))
+(setq mu4e-headers-fields
+    '( (:date          .  25)
+       (:flags         .   6)
+       (:from          .  22)
+       (:subject       .  nil)))
+(setq mu4e-get-mail-command "offlineimap")
+;; don't keep message buffers around
+(setq message-kill-buffer-on-exit t)
+;; attachments go here
+(setq mu4e-attachment-dir  "~/Downloads")
+;; smtp mail setting; these are the same that `gnus' uses.
+(setq
+   message-send-mail-function   'smtpmail-send-it
+   smtpmail-default-smtp-server "mail.infomaniak.com"
+   smtpmail-smtp-server         "mail.infomaniak.com"
+   smtpmail-local-domain        "example.com"))
+
+(map!
  :leader
  (:prefix ("l" . "lorem ipsum")
   :desc "add lorem ipsum sentence"
@@ -90,6 +133,9 @@
  (:prefix ("l" . "lorem ipsum")
   :desc "add lorem ipsum list"
   "l" #'lorem-ipsum-insert-list ))
+
+;; ledger
+(load! "lisp/ob-ledger/ob-ledger")
 
 (after! org
   (setq org-hide-emphasis-markers t)
@@ -200,6 +246,17 @@
                  "* NEXT Respond to %:from on %:subject\nSCHEDULED: %t\n%U\n%a\n" :clock-in t :clock-resume t :immediate-finish t)
                 ("n" "note" entry (file "~/Org/refile.org")
                  "* %? :NOTE:\n%U\n%a\n" :clock-in t :clock-resume t)
+                ("l" "Ledger entries")
+                ("lr" "Revenus" plain (file "~/Org/finances.ledger")
+                 "%(org-read-date) * %^{Bénéficiaire}
+  Actifs:Courant:%^{ComptePerso}  CHF%^{Montant}
+  Revenus:%^{ComptePerso}:%^{Compte}
+")
+                ("ld" "Dépenses" plain (file "~/Org/finances.ledger")
+                 "%(org-read-date) * %^{Bénéficiaire}
+  Dépenses:%^{Compte}  CHF%^{Montant}
+  Actifs:Courant:%^{ComptePerso}
+")
                 ("j" "Journal" entry (file+olp+datetree "~/Org/diary.org")
                  "* %?\n%U\n" :clock-in t :clock-resume t)
                 ("w" "org-protocol" entry (file "~/Org/refile.org")
@@ -873,13 +930,18 @@ Skip project and sub-project tasks, habits, and loose non-project tasks."
    (quote org-babel-load-languages)
    (quote ((emacs-lisp . t)
            (dot . t)
+           (ledger . t)
            (ditaa . t)
            (python . t)
+           (gnuplot . t)
+           (org . t)
+           (ruby . t)
            (sh . t)
            (plantuml . t)
-           (latex . t))))
+           (latex . t)
+           (sqlite . t))))
 
-                                        ; Do not prompt to confirm evaluation
+  ;; Do not prompt to confirm evaluation
                                         ; This may be dangerous - make sure you understand the consequences
                                         ; of setting this -- see the docstring for details
   (setq org-confirm-babel-evaluate nil)
@@ -927,22 +989,22 @@ Skip project and sub-project tasks, habits, and loose non-project tasks."
 
   (setq org-export-allow-BIND t)
 
-                                        ; Erase all reminders and rebuilt reminders for today from the agenda
+  ;; Erase all reminders and rebuilt reminders for today from the agenda
   (defun bh/org-agenda-to-appt ()
     (interactive)
     (setq appt-time-msg-list nil)
     (org-agenda-to-appt))
 
-                                        ; Rebuild the reminders everytime the agenda is displayed
+  ;; Rebuild the reminders everytime the agenda is displayed
   (add-hook 'org-finalize-agenda-hook 'bh/org-agenda-to-appt 'append)
 
-                                        ; This is at the end of my .emacs - so appointments are set up when Emacs starts
+  ;; This is at the end of my .emacs - so appointments are set up when Emacs starts
   (bh/org-agenda-to-appt)
 
-                                        ; Activate appointments so we get notifications
+  ;; Activate appointments so we get notifications
   (appt-activate t)
 
-                                        ; If we leave Emacs running overnight - reset the appointments one minute after midnight
+  ;; If we leave Emacs running overnight - reset the appointments one minute after midnight
   (run-at-time "24:01" nil 'bh/org-agenda-to-appt)
 
   ;; Enable abbrev-mode
@@ -1313,7 +1375,7 @@ so change the default 'F' binding in the agenda to allow both"
                 (search category-up))))
 
   ;; Start the weekly agenda on Monday
-  (setq org-agenda-start-on-weekday 1)
+  (setq org-agenda-start-day "day")
 
   ;; Enable display of the time grid so we can see the marker for the current time
   (setq org-agenda-time-grid (quote ((daily today remove-match)
@@ -1494,57 +1556,57 @@ Late deadlines first, then scheduled, then non-late deadlines"
 
   (setq org-crypt-disable-auto-save nil)
 
-  (setq org-use-speed-commands t)
-  (setq org-speed-commands (quote (("0" . ignore)
-                                   ("1" . ignore)
-                                   ("2" . ignore)
-                                   ("3" . ignore)
-                                   ("4" . ignore)
-                                   ("5" . ignore)
-                                   ("6" . ignore)
-                                   ("7" . ignore)
-                                   ("8" . ignore)
-                                   ("9" . ignore)
+  ;; (setq org-use-speed-commands t)
+  ;; (setq org-speed-commands (quote (("0" . ignore)
+  ;;                                  ("1" . ignore)
+  ;;                                  ("2" . ignore)
+  ;;                                  ("3" . ignore)
+  ;;                                  ("4" . ignore)
+  ;;                                  ("5" . ignore)
+  ;;                                  ("6" . ignore)
+  ;;                                  ("7" . ignore)
+  ;;                                  ("8" . ignore)
+  ;;                                  ("9" . ignore)
 
-                                   ("a" . ignore)
-                                   ("d" . ignore)
-                                   ("h" . bh/hide-other)
-                                   ("i" progn
-                                    (forward-char 1)
-                                    (call-interactively 'org-insert-heading-respect-content))
-                                   ("k" . org-kill-note-or-show-branches)
-                                   ("l" . ignore)
-                                   ("m" . ignore)
-                                   ("q" . bh/show-org-agenda)
-                                   ("r" . ignore)
-                                   ("s" . org-save-all-org-buffers)
-                                   ("w" . org-refile)
-                                   ("x" . ignore)
-                                   ("y" . ignore)
-                                   ("z" . org-add-note)
+  ;;                                  ("a" . ignore)
+  ;;                                  ("d" . ignore)
+  ;;                                  ("h" . bh/hide-other)
+  ;;                                  ("i" progn
+  ;;                                   (forward-char 1)
+  ;;                                   (call-interactively 'org-insert-heading-respect-content))
+  ;;                                  ("k" . org-kill-note-or-show-branches)
+  ;;                                  ("l" . ignore)
+  ;;                                  ("m" . ignore)
+  ;;                                  ("q" . bh/show-org-agenda)
+  ;;                                  ("r" . ignore)
+  ;;                                  ("s" . org-save-all-org-buffers)
+  ;;                                  ("w" . org-refile)
+  ;;                                  ("x" . ignore)
+  ;;                                  ("y" . ignore)
+  ;;                                  ("z" . org-add-note)
 
-                                   ("A" . ignore)
-                                   ("B" . ignore)
-                                   ("E" . ignore)
-                                   ("F" . bh/restrict-to-file-or-follow)
-                                   ("G" . ignore)
-                                   ("H" . ignore)
-                                   ("J" . org-clock-goto)
-                                   ("K" . ignore)
-                                   ("L" . ignore)
-                                   ("M" . ignore)
-                                   ("N" . bh/narrow-to-org-subtree)
-                                   ("P" . bh/narrow-to-org-project)
-                                   ("Q" . ignore)
-                                   ("R" . ignore)
-                                   ("S" . ignore)
-                                   ("T" . bh/org-todo)
-                                   ("U" . bh/narrow-up-one-org-level)
-                                   ("V" . ignore)
-                                   ("W" . bh/widen)
-                                   ("X" . ignore)
-                                   ("Y" . ignore)
-                                   ("Z" . ignore))))
+  ;;                                  ("A" . ignore)
+  ;;                                  ("B" . ignore)
+  ;;                                  ("E" . ignore)
+  ;;                                  ("F" . bh/restrict-to-file-or-follow)
+  ;;                                  ("G" . ignore)
+  ;;                                  ("H" . ignore)
+  ;;                                  ("J" . org-clock-goto)
+  ;;                                  ("K" . ignore)
+  ;;                                  ("L" . ignore)
+  ;;                                  ("M" . ignore)
+  ;;                                  ("N" . bh/narrow-to-org-subtree)
+  ;;                                  ("P" . bh/narrow-to-org-project)
+  ;;                                  ("Q" . ignore)
+  ;;                                  ("R" . ignore)
+  ;;                                  ("S" . ignore)
+  ;;                                  ("T" . bh/org-todo)
+  ;;                                  ("U" . bh/narrow-up-one-org-level)
+  ;;                                  ("V" . ignore)
+  ;;                                  ("W" . bh/widen)
+  ;;                                  ("X" . ignore)
+  ;;                                  ("Y" . ignore)
+  ;;                                  ("Z" . ignore))))
 
   (defun bh/show-org-agenda ()
     (interactive)
@@ -1728,12 +1790,6 @@ Late deadlines first, then scheduled, then non-late deadlines"
     (setq line-spacing nil)   ; no extra heigh between lines
     )
   (redraw-frame (selected-frame)))
-
-(map! 
- :leader
- (:prefix ("t" . "toggle")
-  :desc "toggle line-spacing +/- 0.5"
-  "j" #'xah-toggle-line-spacing ))
 
 ;; multiedit
 (define-key evil-normal-state-map (kbd "C-d") 'evil-multiedit-match-and-next)
