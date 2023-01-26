@@ -249,13 +249,13 @@
                 ("l" "Ledger entries")
                 ("lr" "Revenus" plain (file "~/Org/finances.ledger")
                  "%(org-read-date) * %^{Bénéficiaire}
-  Actifs:Courant:%^{ComptePerso}  CHF%^{Montant}
-  Revenus:%^{ComptePerso}:%^{Compte}
+  Actifs:Liquidités%^{ComptePerso}  CHF%^{Montant}
+  Revenus:%^{Compte}
 ")
                 ("ld" "Dépenses" plain (file "~/Org/finances.ledger")
                  "%(org-read-date) * %^{Bénéficiaire}
   Dépenses:%^{Compte}  CHF%^{Montant}
-  Actifs:Courant:%^{ComptePerso}
+  Actifs:Liquidités%^{ComptePerso}
 ")
                 ("j" "Journal" entry (file+olp+datetree "~/Org/diary.org")
                  "* %?\n%U\n" :clock-in t :clock-resume t)
